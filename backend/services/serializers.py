@@ -15,9 +15,12 @@ class MasterSerializer(serializers.ModelSerializer):
         
 
 class BookingSerializer(serializers.ModelSerializer):
+    
+    can_cancel = serializers.ReadOnlyField()
+    
     class Meta:
         model = Booking
-        fields = ['id', 'client', 'service', 'master', 'date', 'start_time', 'end_time', 'price', 'status']
+        fields = ['id', 'client', 'service', 'master', 'date', 'start_time', 'end_time', 'price', 'status', 'can_cancel']
         read_only_fields = ['price', 'client']
         
     def validate(self, attrs):
@@ -32,3 +35,6 @@ class BookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This time slot is already booked.")
         
         return attrs
+    
+    
+    

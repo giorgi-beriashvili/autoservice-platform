@@ -130,5 +130,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         return Response({"date": date, "available_slots": available_slots})
     
     
+
+    
+    
     
     
