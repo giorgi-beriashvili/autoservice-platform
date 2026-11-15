@@ -5,6 +5,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from datetime import timedelta, datetime, time
+from rest_framework.exceptions import ValidationError
 
 from .models import Service, Master, Booking
 from users.models import Autoservice
@@ -80,6 +81,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Booking.objects.all()
         elif role == "client":
             return Booking.objects.filter(client=user)
+        
+        return Booking.objects.none()
     
     
     def perform_create(self, serializer):
@@ -128,6 +131,16 @@ class BookingViewSet(viewsets.ModelViewSet):
             current_time += step
 
         return Response({"date": date, "available_slots": available_slots})
+    
+
+    def destroy(self, request, *args, **kwargs):
+        booking = self.get_object()
+        
+        if not booking.can_cancel():
+            raise ValidationError("Cannot cancel booking less than 2 hours before start.")
+        
+        return super().destroy(request, *args, **kwargs)
+        
     
     
 
