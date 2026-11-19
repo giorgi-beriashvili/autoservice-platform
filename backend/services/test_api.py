@@ -2,6 +2,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
+from rest_framework.test import APIClient
 from users.models import Autoservice, Profile
 from services.models import Service, Master, Booking
 
@@ -50,3 +51,35 @@ def test_can_cancel_false_less_than_2_hours():
     
     assert booking.can_cancel() is False
     
+    
+@pytest.mark.django_db
+def multitenancy_test():
+    owner_1 = User.objects.create_user(username="First_owner", password="testpass")
+    owner_2 = User.objects.create_user(username="Second_owner", password="testpass")
+    
+    auto_1 = Autoservice.objects.create(name="Test_Service_1",
+                                        owner=owner_1,
+                                        address="Test Address",
+                                        phone='12345678')
+    
+    auto_2 = Autoservice.objects.create(name="Test_Service_2",
+                                        owner=owner_2,
+                                        address="Test Address",
+                                        phone="12345678")
+    
+    service_1 = Service.objects.create(autoservice=auto_1,
+                                       name="Test_owner 1",
+                                       price=67.00,
+                                       duration_min=90)
+    
+    service_2 = Service.objects.create(autoservice=auto_2,
+                                       name="Test_owner 2",
+                                       price=100.00,
+                                       duration_min=60)
+    
+    client = APIClient()
+    client.force_authenticate(user=owner_2)
+    response = client.get('/api/services/')
+    
+    assert response.status_code == 200
+    assert len(response.data['results']) == 1
