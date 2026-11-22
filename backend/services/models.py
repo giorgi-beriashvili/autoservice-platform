@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from datetime import datetime, timedelta
 
 from users.models import Autoservice
 # Create your models here.
@@ -74,7 +75,10 @@ class Booking(models.Model):
     def save(self, *args, **kwargs):
         if not self.price:
             self.price = self.service.price
+        
+        self.end_time = (datetime.combine(self.date, self.start_time) + timedelta(minutes=self.service.duration_min)).time()
         super().save(*args, **kwargs)
+    
 
     def can_cancel(self):
         from django.utils import timezone

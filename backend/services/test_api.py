@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.test import APIClient
+from datetime import date, time
 from users.models import Autoservice, Profile
 from services.models import Service, Master, Booking
 
@@ -115,9 +116,9 @@ def test_race_condition():
                                        client=user,
                                        service=service,
                                        master=master,
-                                       date="2026-11-23",
-                                       start_time="19:30:00",
-                                       end_time="20:00:00",
+                                       date=date(2026, 11, 23),
+                                       start_time=time(19, 30),
+                                       end_time=time(20, 00),
                                        price=90.00,
                                        status="pending")
     
