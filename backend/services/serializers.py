@@ -23,6 +23,7 @@ class BookingSerializer(serializers.ModelSerializer):
         fields = ['id', 'client', 'service', 'master', 'date', 'start_time', 'end_time', 'price', 'status', 'can_cancel']
         read_only_fields = ['price', 'client']
         
+    # Prevent double-booking: check if this time slot is already taken(race condition) 
     def validate(self, attrs):
         master = attrs["master"]
         date = attrs["date"]

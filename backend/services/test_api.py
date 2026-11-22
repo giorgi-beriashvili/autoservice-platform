@@ -53,9 +53,15 @@ def test_can_cancel_false_less_than_2_hours():
     
     
 @pytest.mark.django_db
-def multitenancy_test():
+def test_multitenancy():
     owner_1 = User.objects.create_user(username="First_owner", password="testpass")
     owner_2 = User.objects.create_user(username="Second_owner", password="testpass")
+    
+    owner_1.profile.role = "owner"
+    owner_1.profile.save()
+    
+    owner_2.profile.role = "owner"
+    owner_2.profile.save()
     
     auto_1 = Autoservice.objects.create(name="Test_Service_1",
                                         owner=owner_1,
@@ -83,3 +89,55 @@ def multitenancy_test():
     
     assert response.status_code == 200
     assert len(response.data['results']) == 1
+    
+
+@pytest.mark.django_db
+def test_race_condition():
+    user = User.objects.create_user(username="test_user_1", password="testpass")
+    
+    auto = Autoservice.objects.create(name="Test_Service_1",
+                                        owner=user,
+                                        address="Test Address",
+                                        phone='12345678')
+    
+    master = Master.objects.create(autoservice = auto,
+                                    first_name = 'Test',
+                                    last_name = 'Master',
+                                    email = 'master@test.com',
+                                    specialization = 'test')
+    
+    service = Service.objects.create(autoservice=auto,
+                                       name="Test_owner 1",
+                                       price=67.00,
+                                       duration_min=90)
+    
+    booking = Booking.objects.create(autoservice=auto,
+                                       client=user,
+                                       service=service,
+                                       master=master,
+                                       date="2026-11-23",
+                                       start_time="19:30:00",
+                                       end_time="20:00:00",
+                                       price=90.00,
+                                       status="pending")
+    
+    
+    client = APIClient()
+    client.force_authenticate(user=user)
+    
+    data = {
+        "service": service.id,
+        "master": master.id,
+        "date": "2026-11-23",
+        "start_time": "19:45:00",
+        "end_time": "20:15:00",
+        "status": "pending"
+    }
+    
+    response = client.post("/api/bookings/", data)
+    
+    
+    assert response.status_code == 400
+    assert "already booked" in str(response.data)
+    
+    
