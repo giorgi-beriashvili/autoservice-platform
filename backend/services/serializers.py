@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Service, Master, Booking
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -34,6 +35,11 @@ class BookingSerializer(serializers.ModelSerializer):
         calculated_end = (datetime.combine(date, start_time) + timedelta(minutes=service.duration_min)).time()
 
         conflicts = Booking.objects.filter(master=master, date=date, start_time__lt=calculated_end, end_time__gt=start_time)
+        booking_datetime = datetime.combine(date, start_time)
+        booking_datetime = timezone.make_aware(booking_datetime) # converts from naive to UTC
+        
+        if booking_datetime < timezone.now():
+            raise serializers.ValidationError("Cannot book in the past.")
         
         if conflicts.exists():
             raise serializers.ValidationError("This time slot is already booked.")
