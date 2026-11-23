@@ -142,3 +142,55 @@ def test_race_condition():
     assert "already booked" in str(response.data)
     
     
+    
+
+@pytest.mark.django_db
+def test_boundary_race_condition():
+    now = timezone.now()
+    test_date = (now + timedelta(days=1)).date() 
+    user = User.objects.create_user(username="test_user_1", password="testpass")
+    
+    auto = Autoservice.objects.create(name="Test_Service_1",
+                                        owner=user,
+                                        address="Test Address",
+                                        phone='12345678')
+    
+    master = Master.objects.create(autoservice=auto,
+                                   first_name='Test',
+                                   last_name='Master',
+                                   email='master@test.com',
+                                   specialization='test')
+    
+    service = Service.objects.create(autoservice=auto,
+                                     name="Test_owner 1",
+                                     price=67.00,
+                                     duration_min=30)
+    
+    booking = Booking.objects.create(autoservice=auto,
+                                     client=user,
+                                     service=service,
+                                     master=master,
+                                     date=test_date,
+                                     start_time=time(19, 30),
+                                     end_time=time(20, 00),
+                                     price=90.00,
+                                     status="pending")
+    
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+    
+    data = {
+        "service": service.id,
+        "master": master.id,
+        "date": test_date.strftime("%Y-%m-%d"),
+        "start_time": "20:00:00",
+        "end_time": "20:30:00",
+        "status": "pending"
+    }
+    
+    response = client.post("/api/bookings/", data)
+
+    
+    assert response.status_code == 201
+    assert Booking.objects.count() == 2
